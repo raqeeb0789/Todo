@@ -68,6 +68,9 @@ app.use((err, req, res, next) => {
 });
 
 // Routes
+app.get('/api', (req, res) => {
+  res.json({ message: 'Welcome to the Todo API' });
+});
 app.use('/api/auth', authRouter);
 app.use('/api/todos', todosRouter);
 
