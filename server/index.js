@@ -26,10 +26,15 @@ if (process.env.CLIENT_URL) {
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost')) {
+    // Allow localhost, the exact CLIENT_URL, or any Vercel subdomain
+    if (
+      allowedOrigins.indexOf(origin) !== -1 || 
+      origin.startsWith('http://localhost') ||
+      origin.endsWith('.vercel.app')
+    ) {
       callback(null, true);
     } else {
-      console.warn(`CORS Blocked: ${origin} (Expected: ${allowedOrigins.join(', ')})`);
+      console.warn(`CORS Blocked: ${origin} (Expected: ${allowedOrigins.join(', ')} or .vercel.app)`);
       callback(new Error('Not allowed by CORS'));
     }
   },
