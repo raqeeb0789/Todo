@@ -14,6 +14,29 @@ const app = express();
 // Trust proxy is required if you are behind a reverse proxy (like Render, Heroku)
 app.set('trust proxy', 1);
 
+
+// Enable CORS dynamically before rate limiting to fix preflight/OPTIONS issues
+const allowedOrigins = [];
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+  // Handle case where env var has trailing slash but origin header does not
+  allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS Blocked: ${origin} (Expected: ${allowedOrigins.join(', ')})`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 // Security Headers
 app.use(helmet());
 
@@ -35,26 +58,6 @@ app.use('/api', limiter);
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-app';
 
-// Determine allowed origins
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-if (process.env.CLIENT_URL) {
-  allowedOrigins.push(process.env.CLIENT_URL);
-}
-
-// Enable CORS with specific options
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
 
 // Body parser middleware
 app.use(express.json());
